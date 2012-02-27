@@ -146,12 +146,12 @@ document.toString() == '[object HTMLDocument]' && function()
 					popup.show = showPopup;
 					popup.hide = hidePopup;
 					
-					document.documentElement.appendChild(popup);
+					(document.body || document.documentElement).appendChild(popup);
 					
 					var style = document.createElementNS('http://www.w3.org/1999/xhtml', 'style');
 					style.type = 'text/css';
 					style.textContent = evt.data.css;
-					document.documentElement.appendChild(style);
+					(document.head || document.documentElement).appendChild(style);
 				break;
 				
 				case 'translate':
