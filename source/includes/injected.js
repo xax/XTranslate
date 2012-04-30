@@ -32,13 +32,12 @@ document.toString() == '[object HTMLDocument]' && function()
 		function handleSelection( evt )
 		{
 			var 
-				type = evt.type,
-				text, range;
-			(
-				type == settings.trigger.type || 
-				(type == 'message' && settings.button.trigger)
-			) && function()
-			{
+				text, range,
+				type = evt.type;
+				
+			(type == settings.trigger.type || 
+			(type == 'message' && settings.button.trigger)) && 
+			function() {
 				selection = window.getSelection();
 				
 				// make selection the children of the last mouseover-ed node
@@ -86,13 +85,12 @@ document.toString() == '[object HTMLDocument]' && function()
 				}();
 			
 			first ? popup.replaceChild(html, first) : popup.appendChild(html);
-			
-			settings.user.css.position.type == 'auto' && popup.css({
+			popup.css({
 				left: pos.left + 'px',
 				top: (pos.bottom + popup.padding) + 'px',
-				margin: 0
+				margin: 0,
+				display: 'block'
 			});
-			popup.css('display', 'block');
 			
 			// fix position
 			var
@@ -107,7 +105,7 @@ document.toString() == '[object HTMLDocument]' && function()
 				offset = {
 					x: pos.left + popup_size.width - win_size.width,
 					y: pos.bottom + popup_size.height - win_size.height,
-					padding: settings.user.css.position.offset
+					padding: 20
 				};
 			
 			offset.x > 0 && popup.css('marginLeft', -(offset.x + offset.padding) + 'px');
@@ -116,11 +114,13 @@ document.toString() == '[object HTMLDocument]' && function()
 		
 		function hidePopup() {
 			!top_level && window.top.postMessage('hide', '*');
-			!settings.user.css.position.visible && popup.css('display', 'none');
+			popup.css('display', 'none');
 		}
 		
 		opera.extension.onmessage = function( evt )
 		{
+			var root = document.documentElement;
+			
 			switch(evt.data.action)
 			{
 				case 'init':
@@ -128,30 +128,30 @@ document.toString() == '[object HTMLDocument]' && function()
 					
 					popup = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
 					popup.className = 'XTranslate';
-					popup.padding = 5;
 					popup.onclick = function( evt )
 					{
 						var elem = evt.target;
-						if( elem.className == 'XTranslate_sound_play' )
-						{
-							port.postMessage({
-								action: "get-sound",
-								url: elem.getAttribute('data-url')
-							});
-						}
+						
+						elem.className == 'XTranslate_sound_play' &&
+						port.postMessage({
+							action: "get-sound",
+							url: elem.getAttribute('data-url')
+						});
+						
 						evt.stopPropagation();
 					};
-		
+
+					popup.padding = 5;
 					popup.css = css;
 					popup.show = showPopup;
 					popup.hide = hidePopup;
-					
-					(document.body || document.documentElement).appendChild(popup);
-					
+
 					var style = document.createElementNS('http://www.w3.org/1999/xhtml', 'style');
-					style.type = 'text/css';
+					style.id = 'XTranslate_CSS';
 					style.textContent = evt.data.css;
-					(document.head || document.documentElement).appendChild(style);
+
+					(document.head || root).appendChild(style);
+					(document.body || root).appendChild(popup);
 				break;
 				
 				case 'translate':
@@ -163,9 +163,28 @@ document.toString() == '[object HTMLDocument]' && function()
 					sound.src = sound.data = evt.data.track;
 				break;
 			}
-	
+
 			evt.data.settings && (settings = evt.data.settings);
 			evt.data.userCSS && popup.setAttribute('style', evt.data.userCSS);
+			
+			(function()
+			{
+				var 
+					id = 'XTranslate_custom_CSS',
+					css_rules = evt.data.customCSS,
+					custom_css = document.getElementById(id);
+				
+				if( css_rules ) {
+					custom_css = custom_css || document.createElementNS('http://www.w3.org/1999/xhtml', 'style');
+					custom_css.id = id;
+					custom_css.textContent = css_rules;
+					(document.head || root).appendChild(custom_css);
+				}
+				
+				if( custom_css && css_rules !== undefined && !css_rules ){
+					custom_css.parentNode.removeChild( custom_css );
+				}
+			}());
 			
 			evt.data.html && (
 				top_level || show_in_frame

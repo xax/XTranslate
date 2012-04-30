@@ -4,31 +4,107 @@
 XTranslate.vendors.add(
 {
 	name: 'Yandex',
-	url: 'http://translate.yandex.ru',
+	url: 'http://translate.yandex.net',
 
-	handler: function( text )
+	handler: function( selection )
 	{
-		var url = this.url;
+		var 
+			lang = settings('lang'),
+			text = encodeURIComponent( selection ),
+			
+			type = selection.split(' ').length > 1 ? 'common' : 'dictionary',
+			translation = {
+				common: {
+					url: this.url + [
+						'/tr/translate',
+						'?lang='+ lang.from +'-'+ lang.to,
+						'&text='+ text
+					].join(''),
+					
+					data: function( response ){
+						return this.responseXML.documentElement.textContent.replace(/</g, '&lt;');
+					},
+					content: function( data ){
+						return data;
+					}
+				},
+
+				dictionary: {
+					url: this.url + [
+						'/dicservice.json/lookup',
+						'?callback=',
+						'&ui='+ lang.to,
+						'&lang='+ lang.from +'-'+ lang.to,
+						'&text='+ text
+					].join(''),
+					
+					data: function( response ){
+						return Function('return '+ response)();
+					},
+					
+					content: function( data )
+					{
+						if( ! data.def.length ) return selection;
+						else return data.def.map(function( wordtype )
+						{
+							return [
+								'<dl class="XTranslate_wordtype">',
+									'<dt>'+ wordtype.pos +'</dt>',
+									'<dd>',
+										wordtype.tr.map(function( translate )
+										{
+											return translate.text + (
+												translate.syn && translate.syn.length 
+													? ', '+ translate.syn.map(function(s){ return s.text }).join(', ')
+													: ''
+											);
+										}).join(', '),
+									'</dd>',
+								'</dl>'
+							].join('')
+						}).join('')
+					}
+				}
+			},
+			
+			action = translation[type];
+		
 		return deferred(function(dfr)
 		{
 			ajax({
-				url: url + [
-					'/tr/translate?lang=', settings('lang.from') +'-'+ settings('lang.to'),
-					'&text='+ encodeURIComponent(text)
-				].join(''),
-				
-				complete: function()
+				url: action.url,
+				complete: function( response )
 				{
-					var html = [
-						'<div class="XTranslate_result Powered_by_Yandex">',
-							this.responseXML.documentElement.textContent.replace(/</g, '&lt;'),
-						'</div>'
-					].join('');
-					
-					dfr.resolve({
-						html: html,
-						response: this.responseText
-					});
+					try {
+						var 
+							error = this.status != 200,
+							data = !error ? action.data.call(this, response) : response,
+							content = !error ? action.content.call(this, data) : response;
+							
+						var html = [
+							'<div class="XTranslate_result Powered_by_Yandex">',
+								content,
+							'</div>'
+						].join('');
+						
+						dfr.resolve({
+							html: html,
+							response: response
+						});
+					}
+					catch(e) {
+						console.error(
+							[
+								'---',
+								'XTranslate: not correct response from Yandex or something nasty happens.',
+								'URL: '+ action.url,
+								'Status: '+ this.status,
+								'Response: '+ response,
+								'Error: '+ e.message,
+								'---'
+							].join('\n')
+						);
+					}
 				}
 			});
 		});
