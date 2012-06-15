@@ -38,7 +38,7 @@
 		{
 			"en": "Show translation results",
 			"ru": "Показывать результаты перевода",
-			"de": "Zeige Übersetzungsergebnisse",
+			"de": "Anzeige der Übersetzungsergebnisse",
 			"tr": "Çeviri sonuçlarını göster",
 			"pl": "Pokaż tłumaczenie",
 			"ja": "翻訳結果の表示",
@@ -370,24 +370,6 @@
 			"es": "Precaución"
 		},
 		{
-			"en": "Use the button below, if the extension doesn't work anymore after upgrading to new version",
-			"ru": "Используйте кнопку ниже, если расширение перестало работать после обновления на новую версию",
-			"de": "Verwenden Sie folgende Schaltfläche, wenn die Erweiterung nach dem Upgrade auf die neuere Version nicht mehr funktioniert",
-			"tr": "Eğer eklenti güncelleme sonrası artık çalışmıyorsa aşağıdaki düğmeyi kullanın.",
-			"pl": "Użyj przycisku poniżej, jeżeli rozszerzenie nie działa po aktualizacji do nowej wersji",
-			"ja": "下のボタンは新バージョンに更新して動作しなくなった時にだけ押してください",
-			"es": "Usa el botón de abajo, si la extensión dejara de funcionar después de actualizar a una nueva versión"
-		},
-		{
-			"en": "Reset global settings",
-			"ru": "Сбросить глобальные настройки",
-			"de": "Zurücksetzen der globalen Einstellungen",
-			"tr": "Genel ayarları sıfırla",
-			"pl": "Resetuj wszystkie ustawienia",
-			"ja": "全ての設定をリセットする",
-			"es": "Resetear ajustes globales"
-		},
-		{
 			"en": "Show the sound-icon of voice translation",
 			"ru": "Показывать иконку для голосового перевода",
 			"de": "Zeige Lautsprechersymbol für Sprachausgabe",
@@ -413,8 +395,30 @@
 			"ru": "Пример",
 			"de": "Beispiel",
 			"pl": "Przykład"
+		},
+		{
+			"en": "Settings",
+			"ru": "Настройки",
+			"de": "Einstellungen",
+			"pl": "Ustawienia"
+		},
+		{
+			"en": "User input",
+			"ru": "Ввод текста",
+			"de": "Benutzereingabe",
+			"pl": "Wprowadź tekst"
+		},
+		{
+			"en": "Clear settings",
+			"ru": "Сброс настроек",
+			"de": "Einstellungen löschen",
+			"pl": "Resetuj ustawienia"
+		},
+		{
+			"en": "Translate the page",
+			"ru": "Перевести страницу",
+			"de": "Diese Seite übersetzen",
+			"pl": "Przetłumacz stronę"
 		}
 	]
 }
-
-

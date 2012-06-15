@@ -22,28 +22,42 @@ function parse( tmpl, data )
 	});
 }
 
-window.addEventListener('DOMContentLoaded', function( evt )
+function XTranslate_options()
 {
 	var 
 		bg = opera.extension.bgProcess,
-		header = [
-			document.title,
-			'<span class="version"> v.',
-				widget.version,
-			'</span>'
-		].join('');
+		header = document.title +' '+ parse('<span class="version">${version}</span>', widget);
 	
 	$('h1').innerHTML = header;
-	$('button[name="reset-globals"]').onclick = function(evt)
+
+	// Tabs
+	var toolbar = $('.toolbar');
+	
+	toolbar.chain = toolbar.getAttribute('data-chain');
+	toolbar.active_tab = $('[data-target = "'+ bg.settings(toolbar.chain) +'"]', toolbar) || $('.active', toolbar);
+	toolbar.onclick = function( evt )
 	{
-		delete widget.preferences.settings;
-		bg.configure(function()
+		var 
+			target = evt.target || this,
+			is_tab = target.className.indexOf('tab') > -1;
+		
+		if( is_tab )
 		{
-			bg.settings('button.trigger', true);
-			bg.settings('button.trigger', false);
-			location.reload();
-		});
+			var active_parent_cssview = target.getAttribute('data-target');
+			$('.XTranslate_options').className = 'XTranslate_options '+ active_parent_cssview;
+			bg.settings(toolbar.chain, active_parent_cssview);
+			
+			user_input && 
+			active_parent_cssview == 'XTranslate_tab_user_input' && 
+			user_input.area.focus();
+			
+			$('.tab', toolbar).forEach(function( tab ){
+				tab.className = 'tab ' + (tab === target ? 'active' : '');
+			});
+		}
 	};
+	
+	toolbar.onclick.call(toolbar.active_tab, {});
 	
 	// vendors-list
 	var vendors = function()
@@ -472,4 +486,148 @@ window.addEventListener('DOMContentLoaded', function( evt )
 		}
 	};
 	
-}, false);
+	// User input (additional tab in the settings)
+	var user_input = 
+	{
+		area: $('.XTranslate_user_input_area'),
+		result: $('.XTranslate_user_input_result'),
+		translate: function(evt, self)
+		{
+			var 
+				value = this.value,
+				scroll_height = this.scrollHeight,
+				has_scroll = this.offsetHeight - 4 /*border*/ < scroll_height,
+				nl = {
+					min: self.params.rowsNum - 1,
+					was: ((self.prev || '').match(/\n/g) || []).length,
+					now: (value.match(/\n/g) || []).length
+				};
+			
+			// change box's height dependent on the content
+			nl.was !== nl.now && (this.style.height = ((nl.now < nl.min ? nl.min : nl.now) + 1) * self.params.lineHeight + 'px');
+			has_scroll && (this.style.height = scroll_height + 'px');
+			
+			// translation
+			if( self.prev !== value )
+			{
+				if( value ){
+					var response = bg.XTranslate.vendors.current.handler(value, true);
+					
+					bg.when( response ).then(function( result ) {
+						user_input.result.innerHTML = result.html;
+					});
+				}
+				else {
+					user_input.result.innerHTML = '';
+				}
+
+				self.prev = value;
+			}
+		}
+	};
+	
+	// User input's typing handler
+	user_input.area.onkeypress = function( evt )
+	{
+		var timer = 'XTranslate_user_typing_timer';
+		clearTimeout( this[timer] );
+		this[timer] = setTimeout(user_input.translate.bind(this, evt, user_input), 400);
+		
+		if( !user_input.params )
+		{
+			var bS = this.offsetHeight, 
+				rN = this.getAttribute('rows');
+			
+			user_input.params = {
+				boxSize: bS,
+				rowsNum: rN,
+				lineHeight: bS / rN
+			};
+		}
+	};
+	
+	user_input.result.onclick = function( evt )
+	{
+		var 
+			self = this,
+			target = evt.target;
+		
+		// sound play
+		target.className == 'XTranslate_sound_play' && function()
+		{
+			var get_sound = bg.XTranslate.vendors.current['get-sound']({
+				url: this.getAttribute('data-url')
+			});
+			
+			bg.when( get_sound ).then(function( data ) {
+				var sound = $('.XTranslate_sound object');
+				sound.src = sound.data = data.track;
+			});
+		}.call(target);
+		
+		// similar words in the result
+		target.className == 'XTranslate_sim_word' && function()
+		{
+			user_input.area.value = this.innerHTML;
+			user_input.translate.call(user_input.area, evt, user_input)
+			user_input.area.focus();
+		}.call(target);
+	};
+	
+	// Expand/collapse blocks
+	$('dl[data-name]').forEach(function( block )
+	{
+		var 
+			key = block.getAttribute('data-name'),
+			toggle = $('.toggle', block);
+		
+		bg.settings('blocks.shut.'+ key) && (block.className += ' shut');
+		
+		block.onclick = function(){
+			this.className.indexOf('shut') > -1 && toggle.onclick();
+		};
+		
+		toggle.onclick = function( evt )
+		{
+			var is_shut = block.className.split(' ').indexOf('shut') > -1;
+			block.className = is_shut ? 'option' : 'option shut';
+			bg.settings('blocks.shut.'+ key, !is_shut);
+			evt.stopPropagation();
+		};
+	});
+	
+	// Go to the vendor's page for translation url
+	$('.translate_all a').onclick = function()
+	{
+		var 
+			vendor = bg.XTranslate.vendors.current,
+			tab = bg.opera.extension.tabs.getFocused();
+
+		tab && bg.opera.extension.tabs.create({
+			url: vendor.getTranslateThePageURL( tab.url ), 
+			focused: true
+		});
+		
+		return false;
+	};
+
+	// Reset global settings
+	$('.reset').onclick = function(evt)
+	{
+		if( confirm(this.innerText + '?') )
+		{
+			delete widget.preferences.settings;
+			bg.configure(function()
+			{
+				bg.settings('button.trigger', true);
+				bg.settings('button.trigger', false);
+				location.reload();
+			});
+		}
+	};
+	
+	// Misc: throw out from the flow
+	setTimeout(function() {
+		user_input.area.focus();
+	}, 10);
+}

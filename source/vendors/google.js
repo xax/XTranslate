@@ -6,14 +6,23 @@ XTranslate.vendors.add(
 	name: 'Google',
 	url: 'http://translate.google.com',
 	
-	handler: function( text )
+	handler: function( text, show_similars )
 	{
 		var 
 			vendor = this,
 			lang = settings('lang'),
 			text = encodeURIComponent(text),
+			url = vendor.url + 
+			[
+				'/translate_a/t?client=t',
+				'sl='+ lang.from,
+				'hl='+ lang.to,
+				'tl='+ lang.to,
+				'text='+ text
+			].join('&'),
+			
 			sound_lang = lang.from != 'auto' ? lang.from : '',
-			sound_url = this.url + 
+			sound_url = vendor.url + 
 			[
 				'/translate_tts?ie=UTF-8',
 				'&q='+ text,
@@ -24,18 +33,18 @@ XTranslate.vendors.add(
 		return deferred(function(dfr)
 		{
 			ajax({
-				url: vendor.url + [
-					'/translate_a/t?client=t',
-					'&sl='+ lang.from,
-					'&hl='+ lang.to,
-					'&tl='+ lang.to,
-					'&text='+ text
-				].join(''),
-				
+				url: url,
 				complete: function( response )
 				{
+					try {
+						response = eval('('+ response +')');
+					} catch(e){
+						opera.postError("Can't parse JSON-response from the Google: ", response);
+						throw e;
+					}
+					
 					var 
-						data = eval('('+ response +')'),
+						data = response,
 						lang_iso_detected = data[2],
 						lang = vendor.langs.filter(function( lang ){
 							return lang.iso == lang_iso_detected;
@@ -60,12 +69,37 @@ XTranslate.vendors.add(
 								return data[1]
 									? data[1].map(function( wordtype )
 									{
-										return [
-											'<dl class="XTranslate_wordtype">',
-												'<dt>'+ wordtype[0] +'</dt>',
-												'<dd>'+ wordtype[1].join(', ') +'</dd>',
-											'</dl>'
-										].join('')
+										return (
+											! wordtype[0]
+											? ''
+											: [
+												'<dl class="XTranslate_wordtype">',
+													'<dt>'+ wordtype[0] +'</dt>',
+													
+													! show_similars
+													? '<dd>'+ wordtype[1].join(', ') +'</dd>'
+													: [
+														'<table class="XTranslate_words_list">',
+															wordtype[2].map(function( word ){
+																return [
+																	'<tr>',
+																		'<td class="XTranslate_word">'+ word[0] +'</td>',
+																		'<td class="XTranslate_similars">',
+																			word[1]
+																				? word[1].map(function( similar ){
+																					return '<span class="XTranslate_sim_word">'+ similar +'</span>'
+																				}).join(', ')
+																				: '',
+																		'</td>',
+																	'</tr>'
+																].join('')
+															}).join(''),
+														'</table>'
+													].join(''),
+													
+												'</dl>'
+											].join('')
+										);
 									}).join('')
 									: '';
 							}(),
@@ -117,8 +151,20 @@ XTranslate.vendors.add(
 				}
 			});
 		});
+	},
+	
+	getTranslateThePageURL: function( tab_url )
+	{
+		var 
+			url = this.url + '/translate?',
+			lang = settings('lang'),
+			query = [
+				'sl='+ lang.from,
+				'hl='+ lang.to,
+				'tl='+ lang.to,
+				'u='+ tab_url
+			].join('&');
+			
+		return url + query;
 	}
 });
-
-
-
