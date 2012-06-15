@@ -1,5 +1,9 @@
-// @project XTranslate (injected.js)
-// @url https://github.com/extensible/XTranslate 
+// ==UserScript==
+// @project		XTranslate (injected.js)
+// @author		extensible
+// @url				https://github.com/extensible/XTranslate
+// @exclude		http://acid3.acidtests.org/
+// ==/UserScript==
 
 document.toString() == '[object HTMLDocument]' && function()
 {
@@ -205,9 +209,11 @@ document.toString() == '[object HTMLDocument]' && function()
 					style.id = 'XTranslate_CSS';
 					style.textContent = evt.data.css;
 					
-					// append to the root node, cause acid3 test otherwise has 97/100
-					(/*document.head ||*/ root).appendChild(style);
-					(/*document.body ||*/ root).appendChild(popup);
+					(document.head || root).appendChild(style);
+					(document.body || root).appendChild(popup);
+					// Appending popup <div> to <body> causes acid3 test to score 97/100!
+					// Thus specifically @exclude injected.js
+					// (or append to root == <html> propably violating specs).
 				break;
 				
 				case 'translate':
